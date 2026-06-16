@@ -1,0 +1,32 @@
+# Idiom-pass linter config (Task 1.2 stub; tightened at Task 3.3 if needed).
+line-length = 100
+target-version = "py313"
+
+# Generated gRPC stubs are not idiom-graded (protoc owns their style).
+extend-exclude = ["*_pb2.py", "*_pb2_grpc.py", ".venv"]
+
+[lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # isort
+  "N",        # pep8-naming
+  "UP",       # pyupgrade
+  "B",        # bugbear
+  "SIM",      # simplify
+  "RUF",
+]
+ignore = [
+  # FastAPI's signature-default DI idiom (Depends/Header/Query in defaults) — the
+  # framework's prescribed pattern, not a mutable-default-argument bug.
+  "B008",
+  # Em/en dashes are intentional in the companion's English prose docstrings.
+  "RUF001", "RUF002", "RUF003",
+]
+
+[lint.per-file-ignores]
+# Tests construct naive variants and may use the assertion-style FastAPI deps.
+"tests/**" = ["B008"]
+
+[format]
+quote-style = "double"

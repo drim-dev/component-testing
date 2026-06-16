@@ -1,0 +1,14 @@
+// Idiom-pass formatter stub (Task 1.2). Folded into build.gradle.kts at
+// Task 3.2 (when the Gradle wrapper is generated and plugin versions are
+// verified by a real build):
+//
+// spotless {
+//   java {
+//     googleJavaFormat()
+//     importOrder()
+//     removeUnusedImports()
+//   }
+// }
+//
+// JUnit conventions for the idiom pass: test classes *Test / *LyingTest,
+// @DisplayName carries the scenario id (S-DM-08 ...).

@@ -1,0 +1,46 @@
+# lock-tests — the CI gate that enforces "кто пишет код — не пишет ему проверку".
+#
+# THIS IS A CITABLE RECIPE, NOT A LIVE WORKFLOW HERE.
+# This companion repository runs NO CI by design (Dima's decision): it is a frozen
+# teaching exhibit, not a living product with agents committing to it, so there is
+# nothing for this gate to guard here. You verify the companion by cloning it and
+# running each language's test suite yourself ("don't trust a badge — run the
+# verification"). This file ships so the reader can copy it into THEIR OWN repo,
+# where agents continuously contribute and the lock gate earns its keep.
+#
+# The gate is one portable shell script (scripts/lock-tests.sh): git diff over the
+# test paths, fail if a pre-existing test changed, allow a `Test-Edit-Approved:`
+# trailer as the audited human override. Because the script is language-agnostic
+# (just git + path globs), the SAME script guards all five reference languages — the
+# matrix below only varies which folder is in scope, proving the rule is itself
+# transferable and not a per-stack trick.
+
+name: lock-tests
+
+on:
+  pull_request:
+    # Test edits arrive via PRs; that is the choke point where the gate must run.
+    branches: [main]
+
+# fetch-depth: 0 and an explicit base are load-bearing: the script diffs against the
+# merge base with origin/main, which needs full history, not a shallow clone.
+jobs:
+  lock-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One job per language only to mirror the reader's polyglot pipeline shape;
+        # the gate logic is identical across all five — the script does the work.
+        language: [dotnet, go, typescript, java, python]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce test-file lock (${{ matrix.language }})
+        # GITHUB_BASE_REF is the PR's target branch (e.g. "main"). The script
+        # resolves the merge base itself, so passing the branch name is enough.
+        run: |
+          git fetch origin "$GITHUB_BASE_REF" --depth=0 || git fetch origin "$GITHUB_BASE_REF"
+          sh scripts/lock-tests.sh "origin/$GITHUB_BASE_REF"

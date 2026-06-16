@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Relay.Api/Relay.Api.csproj" />
+  </Folder>
+  <Folder Name="/harness/">
+    <Project Path="harness/Relay.Testing/Relay.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Relay.Api.Tests/Relay.Api.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,28 @@
+# Idiom-pass linter config (Task 1.2 stub; tightened at Task 2.2 if needed).
+# The §6 idiom contour: "idiom-pass by Claude + linters, not a native reviewer."
+version: "2"
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - misspell
+    - revive
+    - gocritic
+    - errorlint
+    - copyloopvar
+  settings:
+    revive:
+      rules:
+        # revive's "exported" rule demands a doc comment on every exported symbol; that
+        # conflicts with this repo's policy of no comments that merely restate WHAT a symbol
+        # does (e.g. "// DSN returns the DSN"). Package docs + intent comments cover the rest.
+        - name: exported
+          disabled: true
+formatters:
+  enable:
+    - gofmt
+    - goimports

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relay"
+version = "0.1.0"
+description = "Relay — the Python implementation of the Verification Map companion repo"
+requires-python = ">=3.13"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+# Scenario ids embed in test names (S_DM_08 …); the conformance grep reads them.
+python_files = ["*_test.py", "test_*.py"]
+addopts = "-ra -p no:cacheprovider"
+filterwarnings = [
+    "ignore::DeprecationWarning:botocore.*",
+]

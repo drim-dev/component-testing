@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package relay.presence.v1;
+
+option csharp_namespace = "Relay.Api.Features.Presence.Grpc";
+
+// The thin internal presence service (spec/04-dependencies.md §8). Same proto in every
+// language. One unary RPC + one server-streaming RPC — deliberately small: gRPC is the
+// transport-shape exhibit, not a feature.
+service Presence {
+  rpc GetPresence(GetPresenceRequest) returns (PresenceStatus);                 // unary
+  rpc StreamChannelPresence(StreamChannelPresenceRequest)
+      returns (stream PresenceStatus);                                          // server-streaming
+}
+
+message GetPresenceRequest { string user_id = 1; }
+message StreamChannelPresenceRequest { repeated string user_ids = 1; }
+message PresenceStatus { string user_id = 1; bool online = 2; }

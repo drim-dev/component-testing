@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS feed_entries;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS attachments;
+DROP TABLE IF EXISTS dm_messages;
+DROP TABLE IF EXISTS channel_messages;
+DROP TABLE IF EXISTS channel_members;
+DROP TABLE IF EXISTS channels;
+DROP TABLE IF EXISTS dm_participants;
+DROP TABLE IF EXISTS dm_conversations;
+DROP TABLE IF EXISTS users;

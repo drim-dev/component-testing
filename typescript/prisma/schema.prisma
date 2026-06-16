@@ -1,0 +1,128 @@
+// Relay's PostgreSQL schema — identical tables/constraints/indexes to
+// ../../spec/03-schema.md (the schema is the SAME in all five languages; the
+// migrator differs). Prisma Migrate is the TS migrator. CHECK constraints and
+// the test-only fault trigger that Prisma cannot express in the schema language
+// are applied as raw SQL by the DatabaseHarness after `prisma db push`
+// (harness/database.harness.ts) — they are product behavior, not optional.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id
+  handle      String   @unique
+  displayName String   @map("display_name")
+  createdAt   DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@map("users")
+}
+
+model DmConversation {
+  id        String   @id
+  userLo    String   @map("user_lo")
+  userHi    String   @map("user_hi")
+  createdAt DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([userLo, userHi])
+  @@map("dm_conversations")
+}
+
+model DmParticipant {
+  conversationId String @map("conversation_id")
+  userId         String @map("user_id")
+
+  @@id([conversationId, userId])
+  @@map("dm_participants")
+}
+
+model Channel {
+  id        String   @id
+  name      String
+  private   Boolean
+  createdAt DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@map("channels")
+}
+
+model ChannelMember {
+  channelId String   @map("channel_id")
+  userId    String   @map("user_id")
+  role      String
+  joinedAt  DateTime @map("joined_at") @db.Timestamptz(6)
+
+  @@id([channelId, userId])
+  @@map("channel_members")
+}
+
+model ChannelMessage {
+  id               String   @id
+  channelId        String   @map("channel_id")
+  senderId         String   @map("sender_id")
+  text             String
+  linkPreviewTitle String?  @map("link_preview_title")
+  createdAt        DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([channelId, createdAt(sort: Desc), id], map: "channel_messages_page")
+  @@map("channel_messages")
+}
+
+model DmMessage {
+  id             String   @id
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  text           String
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([conversationId, createdAt(sort: Desc), id], map: "dm_messages_page")
+  @@map("dm_messages")
+}
+
+model Attachment {
+  id         String   @id
+  channelId  String   @map("channel_id")
+  uploaderId String   @map("uploader_id")
+  messageId  String?  @map("message_id")
+  filename   String
+  sizeBytes  BigInt   @map("size_bytes")
+  storageKey String   @unique @map("storage_key")
+  createdAt  DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@map("attachments")
+}
+
+model Notification {
+  id             String   @id
+  userId         String   @map("user_id")
+  dmMessageId    String   @unique @map("dm_message_id")
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  preview        String
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt(sort: Desc)], map: "notifications_page")
+  @@map("notifications")
+}
+
+model FeedEntry {
+  id        String   @id
+  userId    String   @map("user_id")
+  channelId String   @map("channel_id")
+  // message_id carries NO FK on purpose (03-schema.md): the feed projection may
+  // momentarily lead channel_messages under publish-confirmed-then-commit; the
+  // integrity anchor is the UNIQUE(user_id, message_id) pair, not an FK.
+  messageId String   @map("message_id")
+  senderId  String   @map("sender_id")
+  preview   String
+  createdAt DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([userId, messageId])
+  @@index([userId, createdAt(sort: Desc)], map: "feed_entries_page")
+  @@map("feed_entries")
+}

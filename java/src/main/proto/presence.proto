@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package relay.presence.v1;
+
+option java_package = "dev.drim.relay.presence.grpc";
+option java_multiple_files = true;
+
+service Presence {
+  rpc GetPresence(GetPresenceRequest) returns (PresenceStatus);          // unary
+  rpc StreamChannelPresence(StreamChannelPresenceRequest)
+      returns (stream PresenceStatus);                                   // server-streaming
+}
+
+message GetPresenceRequest { string user_id = 1; }
+message StreamChannelPresenceRequest { repeated string user_ids = 1; }
+message PresenceStatus { string user_id = 1; bool online = 2; }
