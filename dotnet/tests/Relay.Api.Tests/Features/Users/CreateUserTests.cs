@@ -26,6 +26,9 @@ public sealed class CreateUserTests(TestFixture fixture) : RelayTest(fixture)
 
         var stored = await Fixture.Database.SingleOrDefault<User>(u => u.Handle == "ada");
         stored.Should().NotBeNull();
+        stored.Handle.Should().Be(body.Handle);
+        stored.DisplayName.Should().Be(body.DisplayName);
+        stored.Id.Should().Be(body.Id);
     }
 
     [Fact]
