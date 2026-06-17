@@ -1,60 +1,43 @@
-// PresenceHarness boots the REAL companion-owned presence gRPC service on an
-// ephemeral 127.0.0.1 port over a real socket, so the API consumes it through
-// genuine gRPC (cleartext h2c) — the transport-agnostic proof (not an in-process
-// double). It shares the suite's Redis so a heartbeat is observable through the
-// stream. Seed = set presence keys directly; fault control = arm the stream to
-// fail after N (the deterministic partial-stream probe); Reset = clear the fault
-// flag (presence keys are cleared by the suite's Redis FLUSHDB).
+// PresenceHarness boots a STUB presence gRPC server on an ephemeral 127.0.0.1
+// port over a real socket, so the API still consumes presence through genuine
+// gRPC (cleartext h2c) — the transport-agnostic proof — without dragging the
+// neighbour's own dependencies (its Redis) into the test. Presence is a NEIGHBOUR
+// service, so in a component test of the Relay API it is stubbed, not run for
+// real. setOnline = program the canned answer; failStreamAfter = arm the
+// partial-stream fault; reset = clear the online set and the fault flag.
 
-import Redis from 'ioredis';
-
-import { PRESENCE_KEY_PREFIX } from '../src/infra/redis-infra.js';
-import { PresenceServer, StreamFault } from '../src/presence/service.js';
+import { PresenceStubServer } from './presence-stub.js';
 import type { DependencyHarness } from './dependency-harness.js';
 
 export class PresenceHarness implements DependencyHarness {
-  private redis?: Redis;
-  private server?: PresenceServer;
-  private readonly fault = new StreamFault();
+  private readonly stub = new PresenceStubServer();
   private addr = '';
-
-  constructor(private readonly redisAddress: { host: string; port: number }) {}
 
   get address(): string {
     return this.addr;
   }
 
   async start(): Promise<void> {
-    this.redis = new Redis({ host: this.redisAddress.host, port: this.redisAddress.port });
-    this.server = new PresenceServer(this.redis, this.fault);
-    this.addr = await this.server.start();
+    this.addr = await this.stub.start();
   }
 
   reset(): Promise<void> {
-    this.fault.clear();
+    this.stub.reset();
     return Promise.resolve();
   }
 
   async stop(): Promise<void> {
-    if (this.server) {
-      await this.server.stop();
-    }
-    if (this.redis) {
-      this.redis.disconnect();
-    }
+    await this.stub.stop();
   }
 
-  // setOnline marks a user online directly (the same key the heartbeat writes).
-  async setOnline(userId: string): Promise<void> {
-    if (!this.redis) {
-      throw new Error('PresenceHarness not started');
-    }
-    await this.redis.set(`${PRESENCE_KEY_PREFIX}${userId}`, '1', 'EX', 60);
+  // setOnline programs the stub: mark a user online in its canned answer.
+  setOnline(userId: string): void {
+    this.stub.setOnline(userId);
   }
 
   // failStreamAfter arms the partial-stream fault: the next stream emits n
   // statuses then aborts.
   failStreamAfter(n: number): void {
-    this.fault.arm(n);
+    this.stub.failStreamAfter(n);
   }
 }

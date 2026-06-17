@@ -70,8 +70,8 @@ func (f *Fixture) Start(ctx context.Context) error {
 			return err
 		}
 	}
-	// Presence depends on Redis (shares the connection), so it starts after.
-	f.Presence = NewPresenceHarness(f.Redis.Addr())
+	// Presence is a neighbour service, so it is stubbed — it owns no real dependency.
+	f.Presence = NewPresenceHarness()
 	if err := f.Presence.Start(ctx); err != nil {
 		return err
 	}

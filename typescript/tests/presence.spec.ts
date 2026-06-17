@@ -21,11 +21,11 @@ async function u(tag: string): Promise<ApiUser> {
 }
 
 describe('S-PR presence', () => {
-  it('S-PR-01: B heartbeats → A GET /users/{B}/presence → 200 online (unary)', async () => {
+  it('S-PR-01: presence reports B online → A GET /users/{B}/presence → 200 online (unary)', async () => {
+    const fx = await getFixture();
     const a = await u('p01a');
     const b = await u('p01b');
-    const cb = await client(b.id);
-    (await cb.post('/me/heartbeat')).expect(204);
+    fx.presence.setOnline(b.id);
     const ca = await client(a.id);
     const dto = (await ca.get(`/users/${b.id}/presence`)).expect(200).json<PresenceDto>();
     expect(dto.status).toBe('online');
@@ -47,8 +47,9 @@ describe('S-PR presence', () => {
       await seedMember(owner, id, m);
     }
     // Two online: owner + members[0].
-    (await (await client(owner.id)).post('/me/heartbeat')).expect(204);
-    (await (await client(members[0].id)).post('/me/heartbeat')).expect(204);
+    const fx = await getFixture();
+    fx.presence.setOnline(owner.id);
+    fx.presence.setOnline(members[0].id);
 
     const co = await client(owner.id);
     const dto = (await co.get(`/channels/${id}/presence`)).expect(200).json<ChannelPresenceDto>();

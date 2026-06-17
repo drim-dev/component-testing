@@ -1,36 +1,48 @@
 package dev.drim.relay.harness;
 
-import dev.drim.relay.infra.PresenceKeys;
 import dev.drim.relay.presence.grpc.GetPresenceRequest;
 import dev.drim.relay.presence.grpc.PresenceGrpc;
 import dev.drim.relay.presence.grpc.PresenceStatus;
 import dev.drim.relay.presence.grpc.StreamChannelPresenceRequest;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
-import io.lettuce.core.api.sync.RedisCommands;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The companion-owned presence gRPC service over Redis (the real transport the G-GRPC catch
- * exercises). The unary RPC reads one key; the streaming RPC emits exactly one status per requested
- * user then closes cleanly — unless the {@link StreamFault} is armed, in which case it emits N
- * statuses then aborts mid-stream. Mirrors presence.Service in go/src/relay/presence/service.go.
+ * A canned-response stub for the neighbour presence service: answers the unary and streaming RPCs
+ * from an in-memory online set, with a test-only {@link StreamFault} that aborts the stream after N
+ * messages (the deterministic partial-stream probe for G-GRPC). No Redis, no neighbour dependencies
+ * — just the contract the Relay API consumes. Presence is a neighbour service, so in a component
+ * test of the Relay API it is stubbed, not run for real.
  */
 public final class PresenceService extends PresenceGrpc.PresenceImplBase {
-  private final RedisCommands<String, String> redis;
+  private final Set<String> online = ConcurrentHashMap.newKeySet();
   private final StreamFault fault;
 
-  public PresenceService(RedisCommands<String, String> redis, StreamFault fault) {
-    this.redis = redis;
+  public PresenceService(StreamFault fault) {
     this.fault = fault;
+  }
+
+  /** Programs the stub: mark a user online in its canned answer. */
+  public void setOnline(String userId) {
+    online.add(userId);
+  }
+
+  /** Clears the online set (the stub owns no shared store to flush). */
+  public void clearOnline() {
+    online.clear();
   }
 
   @Override
   public void getPresence(
       GetPresenceRequest request, StreamObserver<PresenceStatus> responseObserver) {
-    boolean online = online(request.getUserId());
     responseObserver.onNext(
-        PresenceStatus.newBuilder().setUserId(request.getUserId()).setOnline(online).build());
+        PresenceStatus.newBuilder()
+            .setUserId(request.getUserId())
+            .setOnline(online.contains(request.getUserId()))
+            .build());
     responseObserver.onCompleted();
   }
 
@@ -47,14 +59,12 @@ public final class PresenceService extends PresenceGrpc.PresenceImplBase {
                 .asRuntimeException());
         return;
       }
-      boolean online = online(userIds.get(i));
       responseObserver.onNext(
-          PresenceStatus.newBuilder().setUserId(userIds.get(i)).setOnline(online).build());
+          PresenceStatus.newBuilder()
+              .setUserId(userIds.get(i))
+              .setOnline(online.contains(userIds.get(i)))
+              .build());
     }
     responseObserver.onCompleted();
-  }
-
-  private boolean online(String userId) {
-    return redis.exists(PresenceKeys.KEY_PREFIX + userId) > 0;
   }
 }

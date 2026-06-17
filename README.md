@@ -10,9 +10,10 @@ One product — **Relay**, a minimal messaging + community service with an AI
 summary assistant — implemented five times: `dotnet/`, `go/`, `typescript/`,
 `java/`, `python/`. The same behavior, the same database schema, the same
 **83-scenario acceptance catalog** (`spec/06-acceptance.md`), proven by
-component tests against **real dependencies** (PostgreSQL, Redis, Kafka,
-RabbitMQ, MinIO; a verifying fake for the LLM; a fault-injecting stub for
-outbound HTTP; a thin gRPC presence service).
+component tests against the API's **real dependencies** (PostgreSQL, Redis,
+Kafka, RabbitMQ, MinIO), a verifying fake for the LLM, a fault-injecting stub
+for outbound HTTP, and a **stubbed gRPC presence neighbour** (a real gRPC socket
+backed by canned answers — a neighbour service is stubbed, not run for real).
 
 ## Don't trust a badge — run it
 

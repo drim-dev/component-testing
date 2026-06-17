@@ -8,10 +8,10 @@ from harness.fixture import Fixture
 from tests.helpers import client_for, seed_channel, seed_member, seed_user
 
 
-def test_s_pr_01_unary_online_after_heartbeat(fixture: Fixture) -> None:
+def test_s_pr_01_unary_online_from_presence(fixture: Fixture) -> None:
     a = seed_user(fixture, "pra")
     b = seed_user(fixture, "prb")
-    client_for(fixture, b.id).post("/me/heartbeat").expect(204)
+    fixture.presence.set_online(b.id)
     response = client_for(fixture, a.id).get(f"/users/{b.id}/presence")
     response.expect(200)
     assert response.json()["status"] == "online"

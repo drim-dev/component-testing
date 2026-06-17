@@ -133,9 +133,8 @@ public sealed class TestFixture : IAsyncLifetime
             Kafka.Start(_factory, Timeout(180)),
             Rabbit.Start(_factory, Timeout(180)),
             S3.Start(_factory, Timeout(120)),
-            Unfurl.Start(_factory, Timeout(30)));
-        // The presence service shares the suite's Redis, so it starts after Redis is up.
-        await Presence.StartService(Redis.ConnectionString, Timeout(60));
+            Unfurl.Start(_factory, Timeout(30)),
+            Presence.Start(_factory, Timeout(30)));
         await Http.Start(_factory, Timeout(30));
         await Database.CreateSchema(Timeout(60));
         _ = _factory.Server;

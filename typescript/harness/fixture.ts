@@ -60,8 +60,8 @@ export class Fixture {
     await this.s3.start();
     await this.llm.start();
     await this.unfurl.start();
-    // Presence depends on Redis (shares the connection), so it starts after.
-    this.presence = new PresenceHarness(this.redis.address);
+    // Presence is a neighbour service, so it is stubbed — it owns no real dependency.
+    this.presence = new PresenceHarness();
     await this.presence.start();
 
     this.store = new Store(this.database.prisma);

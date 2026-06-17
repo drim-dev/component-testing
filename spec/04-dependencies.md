@@ -35,13 +35,16 @@ is the per-dependency shape:
 
 ## 0.2 Real-vs-fake boundary (locked)
 
-| Real (containerized) | Faked / stubbed |
+| Real (the API's own infra) | Faked / stubbed |
 |---|---|
 | PostgreSQL, Redis, Kafka, RabbitMQ, S3 (MinIO) | LLM (in-process fake with interaction verification) |
-| gRPC presence service (real companion-owned process, in-test) | Outbound HTTP unfurl (local **stub server** with fault injection — a controlled real socket, not an in-process mock) |
+|  | Outbound HTTP unfurl (local **stub server** with fault injection — a controlled real socket, not an in-process mock) |
+|  | gRPC presence — a **neighbour service**, stubbed on the contract (real gRPC socket, in-memory canned answers; the neighbour's own dependencies stay out of the test) |
 
-Rule taught by the guide: **containerizable → real; nondeterministic / paid /
-external-third-party → fake at a deliberate boundary.**
+Rule taught by the guide: **containerizable own-infra → real; nondeterministic /
+paid / external-third-party → fake at a deliberate boundary; a neighbour service
+→ stub it on its contract (running it for real drags its dependencies in and
+drifts the component test toward end-to-end).**
 
 ## 0.3 Container images (locked: pinned by digest)
 
@@ -171,9 +174,10 @@ Every Testcontainers image reference MUST be pinned by **digest**
 - This is the general case of which the LLM fake is the special case — the
   guide says so explicitly (§7).
 
-## 8. gRPC — thin internal presence service
+## 8. gRPC — thin internal presence neighbour
 
-- **Role:** presence. Companion-owned service, same proto in all languages:
+- **Role:** presence. A companion-owned **neighbour service** (not a third party),
+  same proto in all languages:
 
   ```proto
   syntax = "proto3";
@@ -190,17 +194,25 @@ Every Testcontainers image reference MUST be pinned by **digest**
   message PresenceStatus { string user_id = 1; bool online = 2; }
   ```
 
-- **Contract:** heartbeat sets `presence:{userId}` in Redis with 60 s TTL; the
-  stream emits exactly one `PresenceStatus` per requested user then closes OK.
-  The API client must consume to clean stream end; mid-stream error → API 502
-  (`presence:incomplete`), never a partial list as complete.
-- **Harness shape (`PresenceHarness`):** start the real companion presence
-  service in-test (in-process server or child process — per-language idiom)
-  on an ephemeral port; `Seed` = set presence state; **fault control:** make
-  the stream fail after N messages (the service honors a test-only fault flag
-  or the harness fronts it) — the deterministic partial-stream probe;
-  `Assert` = via API responses + the service's Redis; `Reset` = clear state +
-  fault flags.
+- **Contract (the neighbour's real behaviour):** the unary RPC reports a user
+  online/offline; the stream emits exactly one `PresenceStatus` per requested
+  user then closes OK. The API client must consume to clean stream end;
+  mid-stream error → API 502 (`presence:incomplete`), never a partial list as
+  complete. (In production the neighbour reads presence from Redis under
+  `presence:{userId}`, written by the API's heartbeat — but that coupling is the
+  neighbour's concern, not part of the API's component test.)
+- **Harness shape (`PresenceHarness`):** the neighbour is **stubbed**, not run
+  for real. Boot a stub gRPC server on an ephemeral loopback port over a real
+  socket (so the API still crosses a genuine gRPC boundary — the
+  transport-agnostic proof) that answers from an **in-memory online set**, with
+  no Redis and none of the neighbour's own dependencies. `Seed` = program the
+  canned answer (`setOnline`); **fault control:** make the stream fail after N
+  messages — the deterministic partial-stream probe; `Assert` = via API
+  responses; `Reset` = clear the online set + fault flag.
+- **Why stub, not real:** running the real neighbour in-test would drag in *its*
+  dependencies (and, if it called a further service, theirs too) — the component
+  test would drift into end-to-end. A component test isolates **one** service:
+  its own infra real, neighbour services stubbed on their contract.
 - **Scope guard:** gRPC stays *thin* (one unary + one streaming RPC). It is
   the first dependency to defer if the pilot shows bloat (plan, still open).
 

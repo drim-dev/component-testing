@@ -390,9 +390,10 @@ Two sub-cases, one root shape (correct rule, missing wiring):
   as complete.
 - **Lying test:** mocks the gRPC client to return a fully-materialized list —
   streaming (and its failure midway) does not exist in the mock.
-- **Catching test:** real presence service with the harness fault flag "fail
-  after 2 messages": request channel presence (5 members) → expect 502, not a
-  2-member 200. Red against naive (200 with 2 members).
+- **Catching test:** the stubbed presence neighbour (a real gRPC socket) with
+  the harness fault flag "fail after 2 messages": request channel presence (5
+  members) → expect 502, not a 2-member 200. Red against naive (200 with 2
+  members).
 - **Class:** emergent — stream semantics are a transport property; also the
   proof the harness boundary is transport-agnostic (design §2.17).
 - **Honesty note:** presence-status mapping is unit-friendly.

@@ -63,8 +63,8 @@ class Fixture:
             harness.start()
         self.llm.start()
         self.unfurl.start()
-        # Presence depends on Redis (shares the connection), so it starts after.
-        self.presence = PresenceHarness(self.redis.host, self.redis.port)
+        # Presence is a neighbour service, so it is stubbed — it owns no real dependency.
+        self.presence = PresenceHarness()
         self.presence.start()
 
         self.store = Store(self.database.dsn)

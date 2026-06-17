@@ -9,17 +9,17 @@ import (
 	"github.com/drim-dev/verifying-agent-code/go/src/relay/domain"
 )
 
-func TestS_PR_01_heartbeat_makes_online(t *testing.T) {
+func TestS_PR_01_unary_online_from_presence(t *testing.T) {
 	reset(t)
 	ada := seedUser(t, "ada")
 	bob := seedUser(t, "bob")
-	newClient(t, bob.ID).post("/me/heartbeat", nil).expect(http.StatusNoContent)
+	fixture.Presence.SetOnline(bob.ID)
 	var body struct {
 		Status string `json:"status"`
 	}
 	newClient(t, ada.ID).get("/users/" + bob.ID + "/presence").expect(http.StatusOK).decode(&body)
 	if body.Status != "online" {
-		t.Fatalf("expected online after heartbeat, got %q", body.Status)
+		t.Fatalf("expected online when the presence service reports online, got %q", body.Status)
 	}
 }
 
@@ -46,8 +46,8 @@ func TestS_PR_03_channel_presence_complete(t *testing.T) {
 		seedMember(t, ada, ch, u)
 		members = append(members, u)
 	}
-	newClient(t, members[1].ID).post("/me/heartbeat", nil).expect(http.StatusNoContent)
-	newClient(t, members[2].ID).post("/me/heartbeat", nil).expect(http.StatusNoContent)
+	fixture.Presence.SetOnline(members[1].ID)
+	fixture.Presence.SetOnline(members[2].ID)
 
 	var body struct {
 		Members []struct {

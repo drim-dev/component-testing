@@ -19,15 +19,14 @@ namespace Relay.Api.Tests.Features.Presence;
 public sealed class PresenceTests(TestFixture fixture) : RelayTest(fixture)
 {
     [Fact]
-    public async Task S_PR_01_heartbeat_makes_a_user_online_on_the_unary_path()
+    public async Task S_PR_01_a_user_the_presence_service_reports_online_is_online_on_the_unary_path()
     {
         var ada = await Seed.User("ada");
         var bob = await Seed.User("bob");
-
-        (await Fixture.Http.CreateClient(bob.Id).PostAsync("/me/heartbeat", null))
-            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        Fixture.Presence.SetOnline(bob.Id);
 
         var response = await Fixture.Http.CreateClient(ada.Id).GetAsync($"/users/{bob.Id}/presence");
+
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await response.ReadJson<PresenceResponse>()).Status.Should().Be("online");
     }
@@ -61,8 +60,8 @@ public sealed class PresenceTests(TestFixture fixture) : RelayTest(fixture)
     public async Task S_PR_03_channel_presence_streams_every_member_to_completion()
     {
         var (owner, channel, members) = await ChannelOfFive();
-        await Fixture.Presence.SetOnline(members[0].Id);
-        await Fixture.Presence.SetOnline(members[1].Id);
+        Fixture.Presence.SetOnline(members[0].Id);
+        Fixture.Presence.SetOnline(members[1].Id);
 
         var response = await Fixture.Http.CreateClient(owner.Id).GetAsync($"/channels/{channel.Id}/presence");
 

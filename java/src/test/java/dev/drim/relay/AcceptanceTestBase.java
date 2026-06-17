@@ -55,9 +55,8 @@ public abstract class AcceptanceTestBase {
     S3.start();
     UNFURL.start();
     LLM.start();
-    // Presence shares the suite Redis, so it can only be built after Redis is up (honest
-    // inter-harness dependency, mirroring the Go fixture order).
-    PRESENCE = new PresenceHarness(REDIS.host(), REDIS.port());
+    // Presence is a neighbour service, so it is stubbed — it owns no real dependency.
+    PRESENCE = new PresenceHarness();
     PRESENCE.start();
 
     // Only the in-process harnesses are torn down here. The container-backed harnesses (Postgres,

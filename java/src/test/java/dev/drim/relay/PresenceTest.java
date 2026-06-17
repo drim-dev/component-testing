@@ -14,11 +14,11 @@ import org.junit.jupiter.api.Test;
 class PresenceTest extends AcceptanceTestBase {
 
   @Test
-  @DisplayName("S-PR-01: B heartbeats → A GET /users/{B}/presence → 200 online (unary)")
+  @DisplayName("S-PR-01: presence reports B online → A GET /users/{B}/presence → 200 online (unary)")
   void unaryOnline() {
     String a = seedUser("pr01a");
     String b = seedUser("pr01b");
-    client(b).post("/me/heartbeat", null).expectStatus(204);
+    PRESENCE.setOnline(b);
     assertThat(client(a).get("/users/" + b + "/presence").expectStatus(200).string("status"))
         .isEqualTo("online");
   }
@@ -42,8 +42,8 @@ class PresenceTest extends AcceptanceTestBase {
       members[i] = seedUser("pr03m" + i);
       seedMember(owner, ch, members[i]);
     }
-    client(members[0]).post("/me/heartbeat", null).expectStatus(204);
-    client(members[1]).post("/me/heartbeat", null).expectStatus(204);
+    PRESENCE.setOnline(members[0]);
+    PRESENCE.setOnline(members[1]);
 
     JsonNode body = client(owner).get("/channels/" + ch + "/presence").expectStatus(200).json();
     assertThat(body.path("members")).hasSize(5);
